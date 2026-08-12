@@ -7,7 +7,7 @@ Kotlin SdkCore + thin adapters for Play Install Referrer, App Links, resolve HTT
 | Path | Role |
 |------|------|
 | `taqlyn-sdk/` | Android library — public `SdkCore` + adapters |
-| `sample/` | Proof harness app (imports **SdkCore only**) |
+| `sample/` | Proof harness app (imports **SdkCore** + **Nav2DeepLinkNavigator**) |
 
 ## Public API
 
@@ -33,7 +33,7 @@ SdkCore.onIntent(intent)            // forward Activity App Links
 | `adapters/ResolveClient.kt` | `ResolveClient.resolve()` | HTTP `POST /v1/resolve` |
 | `adapters/KeyValueStore.kt` | `KeyValueStore` | SharedPreferences |
 
-Sample / app feature modules import `com.taqlyn.sdk.SdkCore` only.
+Sample / app feature modules import `com.taqlyn.sdk.SdkCore` only (never Play Install Referrer). Navigation uses the optional `nav-compose` Nav2 adapter.
 
 ## Usage
 
@@ -56,11 +56,20 @@ lifecycleScope.launch {
   SdkCore.setReadyForNavigation(true)
 }
 
+val navigator = Nav2DeepLinkNavigator(
+  navControllerProvider = { navController },
+  routeMapper = { link -> /* map path/params → route */ },
+)
+
 SdkCore.observeLinks().onEach { link ->
-  // navigate once
-  SdkCore.consume(link.linkId)
+  // Map SdkCore DeferredLink → nav-compose DeferredLink, then:
+  if (navigator.navigate(navLink)) {
+    SdkCore.consume(link.linkId)
+  }
 }.launchIn(scope)
 ```
+
+The sample wires Compose `NavHost` (Home + `product/{id}`) to `Nav2DeepLinkNavigator` via Gradle `includeBuild("../nav-compose")` + dependency substitution for `com.taqlyn.nav:navigation2`.
 
 ## Unit tests
 
@@ -68,6 +77,7 @@ From this directory:
 
 ```bash
 ./gradlew :taqlyn-sdk:test
+./gradlew :sample:assembleDebug
 ```
 
 Coverage includes:
@@ -75,6 +85,7 @@ Coverage includes:
 - resolve-once + local flag → second call `null`
 - ready-gate holds pending until `setReadyForNavigation(true)`
 - sample sources do not reference `com.android.installreferrer`
+- Nav2 double-navigation guard by `linkId` (navigator)
 
 ## Real-device Install Referrer proof
 
@@ -90,4 +101,4 @@ Warm App Links can be smoke-tested with `adb shell am start -a android.intent.ac
 
 ## Branch
 
-Develop on `integrate/phase-04-match-android` (not `main`).
+Develop on `integrate/phase-07-nav-adapters` (not `main`).
