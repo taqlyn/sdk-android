@@ -229,19 +229,19 @@ object SdkCore {
         configured?.incomingLink?.onIntent(intent)
     }
 
-    /** Test-only reset between unit tests. */
+    /** Test-only reset between unit tests (public for cross-module bridge hosts). */
     @JvmStatic
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    internal fun resetForTests() {
+    fun resetForTests() {
         configured = null
         readyForNavigation = false
         pendingDeferred = null
         deferredDelivery.resetReplayCache()
     }
 
-    /** Peek pending deferred (tests). */
+    /** Peek pending deferred (tests; public for cross-module bridge hosts). */
     @JvmStatic
-    internal fun pendingForTests(): DeferredLink? = pendingDeferred
+    fun pendingForTests(): DeferredLink? = pendingDeferred
 
     private fun isOrganic(referrer: String): Boolean {
         val trimmed = referrer.trim()

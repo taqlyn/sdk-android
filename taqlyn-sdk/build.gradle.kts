@@ -1,7 +1,11 @@
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
+    id("maven-publish")
 }
+
+group = "com.taqlyn"
+version = "0.1.0-SNAPSHOT"
 
 android {
     namespace = "com.taqlyn.sdk"
@@ -37,4 +41,19 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
     testImplementation("com.google.truth:truth:1.4.4")
     testImplementation("org.robolectric:robolectric:4.14.1")
+}
+
+// Enables RN / Flutter consumers via includeBuild + dependencySubstitution
+// or `./gradlew :taqlyn-sdk:publishToMavenLocal`.
+publishing {
+    publications {
+        create<MavenPublication>("release") {
+            groupId = "com.taqlyn"
+            artifactId = "taqlyn-sdk"
+            version = project.version.toString()
+            afterEvaluate {
+                from(components["release"])
+            }
+        }
+    }
 }
