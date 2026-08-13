@@ -58,15 +58,29 @@ enum class LinkProcessingMode {
     DEFERRED_ONLY,
 }
 
+/** Hosted API origin. Self-host: pass [SdkOptions.apiBaseUrl]. */
+const val DEFAULT_API_BASE_URL = "https://api.rutvik.qzz.io"
+
 /**
  * Configure options for [SdkCore.configure].
  *
- * @param apiBaseUrl Control-plane base URL (e.g. https://api.example.com)
+ * @param apiBaseUrl Control-plane base URL. Defaults to [DEFAULT_API_BASE_URL].
  * @param linkProcessingMode Optional filter for observe/resolve delivery
  * @param env Optional environment hint forwarded to resolve (sandbox/live)
  */
 data class SdkOptions(
-    val apiBaseUrl: String,
+    val apiBaseUrl: String = DEFAULT_API_BASE_URL,
     val linkProcessingMode: LinkProcessingMode = LinkProcessingMode.ALL,
     val env: String? = null,
 )
+
+/** Unified short link minted from the mobile SDK (public key id only). */
+data class ShareLink(
+    val id: String,
+    val code: String,
+    val shortUrl: String,
+    val host: String,
+    val env: String,
+)
+
+class ShareLinkException(message: String) : Exception(message)

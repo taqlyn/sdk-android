@@ -13,14 +13,16 @@ Kotlin SdkCore + thin adapters for Play Install Referrer, App Links, resolve HTT
 
 ```kotlin
 SdkCore.configure(clientId, publicKeyId, options, context)
+SdkCore.createShareLink(destinationPath = "/offer")  // ShareLink — in-app sharing
 SdkCore.resolveDeferred()           // DeferredLink?
+SdkCore.addLinkListener { … }       // Android-only TaqlynLinkListener (AL + referrer)
 SdkCore.observeLinks()              // Flow<DeferredLink>
 SdkCore.consume(linkId)
 SdkCore.setReadyForNavigation(ready)
 SdkCore.onIntent(intent)            // forward Activity App Links
 ```
 
-`SdkOptions` includes `apiBaseUrl`, optional `linkProcessingMode` (`ALL` | `WEB_ONLY` | `DEFERRED_ONLY`), and optional `env`.
+`SdkOptions.apiBaseUrl` defaults to `DEFAULT_API_BASE_URL` (`https://api.rutvik.qzz.io`); pass it only to self-host. Optional `linkProcessingMode` (`ALL` | `WEB_ONLY` | `DEFERRED_ONLY`) and `env`.
 
 `DeferredLink` mirrors `packages/sdk-contract`: `url`, `path`, `params`, `linkId`, `matchType`, `isDeferred`, `campaign`.
 
@@ -44,7 +46,7 @@ class App : Application() {
     SdkCore.configure(
       clientId = "app_test_…",
       publicKeyId = "pk_test_…",
-      options = SdkOptions(apiBaseUrl = "https://api.example.com"),
+      options = SdkOptions(), // or apiBaseUrl = "https://api.self-host.example"
       context = this,
     )
   }
@@ -77,8 +79,13 @@ From this directory:
 
 ```bash
 ./gradlew :taqlyn-sdk:test
-./gradlew :sample:assembleDebug
+./gradlew :sample:assembleDebug \
+  -PTAQLYN_API_BASE_URL=https://api.rutvik.qzz.io \
+  -PTAQLYN_CLIENT_ID="$TAQLYN_CLIENT_ID" \
+  -PTAQLYN_PUBLIC_KEY_ID="$TAQLYN_PUBLIC_KEY_ID"
 ```
+
+Public tunnel demos: seed with `./scripts/demo-seed.sh`, then pass `-P` props as above (defaults already target `https://api.rutvik.qzz.io`). See [docs/guides/public-demo.md](../../docs/guides/public-demo.md).
 
 Coverage includes:
 

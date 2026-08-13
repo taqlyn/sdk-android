@@ -15,10 +15,19 @@ android {
         versionCode = 1
         versionName = "0.1.0"
 
-        // Override via -PTAQLYN_API_BASE_URL=… when pointing at a real API.
-        buildConfigField("String", "TAQLYN_API_BASE_URL", "\"https://api.example.com\"")
-        buildConfigField("String", "TAQLYN_CLIENT_ID", "\"app_test_sample\"")
-        buildConfigField("String", "TAQLYN_PUBLIC_KEY_ID", "\"pk_test_sample\"")
+        // Override via Gradle props, e.g.:
+        //   ./gradlew :sample:assembleDebug \
+        //     -PTAQLYN_API_BASE_URL=https://api.rutvik.qzz.io \
+        //     -PTAQLYN_CLIENT_ID=app_test_… \
+        //     -PTAQLYN_PUBLIC_KEY_ID=pk_test_…
+        // Defaults target the public tunnel demo host (see docs/guides/public-demo.md).
+        val apiBase =
+            (findProperty("TAQLYN_API_BASE_URL") as String?) ?: "https://api.rutvik.qzz.io"
+        val clientId = (findProperty("TAQLYN_CLIENT_ID") as String?) ?: "app_test_sample"
+        val publicKeyId = (findProperty("TAQLYN_PUBLIC_KEY_ID") as String?) ?: "pk_test_sample"
+        buildConfigField("String", "TAQLYN_API_BASE_URL", "\"$apiBase\"")
+        buildConfigField("String", "TAQLYN_CLIENT_ID", "\"$clientId\"")
+        buildConfigField("String", "TAQLYN_PUBLIC_KEY_ID", "\"$publicKeyId\"")
     }
 
     buildFeatures {

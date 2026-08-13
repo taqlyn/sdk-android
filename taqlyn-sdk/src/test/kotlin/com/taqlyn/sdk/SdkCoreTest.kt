@@ -125,6 +125,40 @@ class SdkCoreTest {
         }
 
     @Test
+    fun androidLinkListener_referrerDeferredAndSkipsClipboard() =
+        runTest {
+            assertThat(
+                isAndroidPlatformLink(
+                    sampleLink("r").copy(matchType = MatchType.INSTALL_REFERRER),
+                ),
+            ).isTrue()
+            assertThat(
+                isAndroidPlatformLink(
+                    sampleLink("c").copy(matchType = MatchType.CLIPBOARD, isDeferred = true),
+                ),
+            ).isFalse()
+
+            val link = sampleLink("lnk_listener")
+            configureWith(
+                referrer = "click_id=clk_listener",
+                resolve = { ResolveOutcome.Matched(link) },
+            )
+
+            val received = mutableListOf<DeferredLink>()
+            val closeable = SdkCore.addLinkListener { received += it }
+            try {
+                SdkCore.resolveDeferred()
+                SdkCore.setReadyForNavigation(true)
+                testScheduler.runCurrent()
+                testScheduler.advanceUntilIdle()
+                assertThat(received.map { it.linkId }).contains("lnk_listener")
+                assertThat(received.first().matchType).isEqualTo(MatchType.INSTALL_REFERRER)
+            } finally {
+                closeable.close()
+            }
+        }
+
+    @Test
     fun warmAppLink_deliversViaObserveLinks() =
         runTest {
             configureWith(

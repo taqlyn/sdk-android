@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import com.taqlyn.sdk.adapters.HttpResolveClient
+import com.taqlyn.sdk.adapters.HttpShareClient
 import com.taqlyn.sdk.adapters.IncomingLink
 import com.taqlyn.sdk.adapters.InstallReferrer
 import com.taqlyn.sdk.adapters.IntentIncomingLink
@@ -13,8 +14,15 @@ import com.taqlyn.sdk.adapters.ResolveClient
 import com.taqlyn.sdk.adapters.ResolveOutcome
 import com.taqlyn.sdk.adapters.ResolveRequest
 import com.taqlyn.sdk.adapters.SdkStoreKeys
+import com.taqlyn.sdk.adapters.ShareClient
+import com.taqlyn.sdk.adapters.ShareLinkRequest
 import com.taqlyn.sdk.adapters.SharedPrefsKeyValueStore
 import com.taqlyn.sdk.adapters.parseClickId
+import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -22,6 +30,7 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -47,12 +56,16 @@ object SdkCore {
     private val deferredDelivery =
         MutableSharedFlow<DeferredLink>(replay = 1, extraBufferCapacity = 8)
 
+    private val listenerScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val listenerJobs = ConcurrentHashMap<TaqlynLinkListener, Job>()
+
     private data class Config(
         val clientId: String,
         val publicKeyId: String,
         val options: SdkOptions,
         val installReferrer: InstallReferrer,
         val resolveClient: ResolveClient,
+        val shareClient: ShareClient,
         val store: KeyValueStore,
         val incomingLink: IncomingLink,
     )
@@ -75,12 +88,14 @@ object SdkCore {
         context: Context? = null,
         installReferrer: InstallReferrer? = null,
         resolveClient: ResolveClient? = null,
+        shareClient: ShareClient? = null,
         store: KeyValueStore? = null,
         incomingLink: IncomingLink? = null,
     ) {
         require(clientId.isNotBlank()) { "clientId required" }
         require(publicKeyId.isNotBlank()) { "publicKeyId required" }
-        require(options.apiBaseUrl.isNotBlank()) { "options.apiBaseUrl required" }
+        val apiBaseUrl =
+            options.apiBaseUrl.ifBlank { DEFAULT_API_BASE_URL }.trim().trimEnd('/')
 
         val appContext = context?.applicationContext
         val referrer =
@@ -101,9 +116,10 @@ object SdkCore {
             Config(
                 clientId = clientId,
                 publicKeyId = publicKeyId,
-                options = options,
+                options = options.copy(apiBaseUrl = apiBaseUrl),
                 installReferrer = referrer,
                 resolveClient = resolveClient ?: HttpResolveClient(),
+                shareClient = shareClient ?: HttpShareClient(),
                 store = kv,
                 incomingLink = incomingLink ?: IntentIncomingLink(),
             )
@@ -176,6 +192,25 @@ object SdkCore {
     }
 
     /**
+     * Android-only custom listener (App Links + Install Referrer / claim).
+     * Clipboard / App Clip matches are not delivered.
+     */
+    @JvmStatic
+    fun addLinkListener(listener: TaqlynLinkListener): AutoCloseable {
+        val job =
+            listenerScope.launch {
+                observeLinks().collect { link ->
+                    if (isAndroidPlatformLink(link)) listener.onTaqlynLink(link)
+                }
+            }
+        listenerJobs[listener] = job
+        return AutoCloseable {
+            job.cancel()
+            listenerJobs.remove(listener, job)
+        }
+    }
+
+    /**
      * Stream of warm App Links and deferred links (deferred gated by ready flag).
      */
     @JvmStatic
@@ -201,6 +236,33 @@ object SdkCore {
                 emptyFlow()
             }
         return merge(warm, deferred)
+    }
+
+    /** Mint a unified short link for in-app sharing (public key id only). */
+    @JvmStatic
+    suspend fun createShareLink(
+        destinationPath: String? = null,
+        destinationWeb: String? = null,
+        params: Map<String, String>? = null,
+        ogTitle: String? = null,
+        ogDescription: String? = null,
+        ogImage: String? = null,
+    ): ShareLink {
+        val config = configured ?: throw ShareLinkException("configure before createShareLink")
+        return config.shareClient.create(
+            ShareLinkRequest(
+                apiBaseUrl = config.options.apiBaseUrl,
+                clientId = config.clientId,
+                publicKeyId = config.publicKeyId,
+                destinationPath = destinationPath,
+                destinationWeb = destinationWeb,
+                params = params,
+                env = config.options.env,
+                ogTitle = ogTitle,
+                ogDescription = ogDescription,
+                ogImage = ogImage,
+            ),
+        )
     }
 
     /** Clear pending deferred link when [linkId] matches. */
@@ -233,6 +295,8 @@ object SdkCore {
     @JvmStatic
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun resetForTests() {
+        listenerJobs.values.forEach { it.cancel() }
+        listenerJobs.clear()
         configured = null
         readyForNavigation = false
         pendingDeferred = null
