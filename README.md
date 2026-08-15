@@ -1,5 +1,7 @@
 # Taqlyn Android SDK (`sdk-android`)
 
+**Full guide (install, manifest, resolve, testing):** [Android cookbook](../../apps/docs/content/platforms/android.md) on the docs site.
+
 Kotlin SdkCore + thin adapters for Play Install Referrer, App Links, resolve HTTP, and local prefs.
 
 ## Modules
