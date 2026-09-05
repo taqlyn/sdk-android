@@ -1,0 +1,54 @@
+name: Publish Android SDK (Maven Central)
+
+# Deploys signed AARs to Maven Central via Sonatype Central Portal API.
+# Cryptographically signed with GPG key pair.
+
+on:
+  release:
+    types: [published]
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+concurrency:
+  group: publish-android-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Build & Publish Android SDK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: gradle
+
+      - name: Run unit tests
+        run: ./gradlew testReleaseUnitTest
+
+      - name: Restore GPG Key
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: |
+          if [ -n "$GPG_PRIVATE_KEY" ]; then
+            echo "$GPG_PRIVATE_KEY" | base64 -d > $(pwd)/signing.gpg
+          fi
+
+      - name: Publish to Maven Central
+        run: |
+          ./gradlew :taqlyn-sdk:publishAndReleaseToMavenCentral \
+            -Psigning.keyId="${{ secrets.GPG_KEY_ID }}" \
+            -Psigning.password="${{ secrets.GPG_PASSPHRASE }}" \
+            -Psigning.secretKeyRingFile="$(pwd)/signing.gpg" \
+            -PsonatypeUsername="${{ secrets.SONATYPE_TOKEN_USERNAME }}" \
+            -PsonatypePassword="${{ secrets.SONATYPE_TOKEN_PASSWORD }}"

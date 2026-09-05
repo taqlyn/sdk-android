@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.taqlyn"
-version = "0.1.0-SNAPSHOT"
+version = "0.1.0"
 
 android {
     namespace = "com.taqlyn.sdk"
