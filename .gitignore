@@ -1,10 +1,16 @@
-*.iml
+# Gradle & Build
 .gradle/
-/local.properties
-/.idea/
-.DS_Store
+**/.gradle/
 /build/
 **/build/
+bin/
+gen/
+out/
+.kotlin/
+
+# Android
+local.properties
+**/local.properties
 captures/
 .externalNativeBuild/
 .cxx/
@@ -13,7 +19,17 @@ captures/
 *.aab
 *.dex
 *.class
-bin/
-gen/
-out/
-.kotlin/
+
+# Keep gradle wrapper
+!gradle-wrapper.jar
+
+# IDE & OS
+*.iml
+.idea/
+/.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
+*~
+*.log

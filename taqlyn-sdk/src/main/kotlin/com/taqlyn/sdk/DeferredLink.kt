@@ -59,7 +59,7 @@ enum class LinkProcessingMode {
 }
 
 /** Hosted API origin. Self-host: pass [SdkOptions.apiBaseUrl]. */
-const val DEFAULT_API_BASE_URL = "https://api.rutvik.qzz.io"
+const val DEFAULT_API_BASE_URL = "https://api.taqlyn.com"
 
 /**
  * Configure options for [SdkCore.configure].

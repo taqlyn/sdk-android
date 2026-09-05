@@ -24,7 +24,7 @@ SdkCore.setReadyForNavigation(ready)
 SdkCore.onIntent(intent)            // forward Activity App Links
 ```
 
-`SdkOptions.apiBaseUrl` defaults to `DEFAULT_API_BASE_URL` (`https://api.rutvik.qzz.io`); pass it only to self-host. Optional `linkProcessingMode` (`ALL` | `WEB_ONLY` | `DEFERRED_ONLY`) and `env`.
+`SdkOptions.apiBaseUrl` defaults to `DEFAULT_API_BASE_URL` (`https://api.taqlyn.com`); pass it only to self-host. Optional `linkProcessingMode` (`ALL` | `WEB_ONLY` | `DEFERRED_ONLY`) and `env`.
 
 `DeferredLink` mirrors `packages/sdk-contract`: `url`, `path`, `params`, `linkId`, `matchType`, `isDeferred`, `campaign`.
 
