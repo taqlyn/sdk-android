@@ -17,6 +17,7 @@ dependencyResolutionManagement {
 rootProject.name = "taqlyn-sdk-android"
 
 includeBuild("../nav-compose") {
+    // In-package sample only. Customer apps take `com.taqlyn.nav:*` from Maven Central.
     dependencySubstitution {
         substitute(module("com.taqlyn.nav:model")).using(project(":model"))
         substitute(module("com.taqlyn.nav:navigation2")).using(project(":navigation2"))

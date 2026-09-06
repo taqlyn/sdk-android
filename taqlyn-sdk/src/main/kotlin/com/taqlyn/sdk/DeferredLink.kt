@@ -58,18 +58,16 @@ enum class LinkProcessingMode {
     DEFERRED_ONLY,
 }
 
-/** Hosted API origin. Self-host: pass [SdkOptions.apiBaseUrl]. */
-const val DEFAULT_API_BASE_URL = "https://api.taqlyn.com"
-
 /**
  * Configure options for [SdkCore.configure].
  *
- * @param apiBaseUrl Control-plane base URL. Defaults to [DEFAULT_API_BASE_URL].
+ * The control-plane origin is baked into the SDK (`https://api.taqlyn.com`,
+ * or `TAQLYN_API_BASE_URL` when compiling/publishing this library).
+ *
  * @param linkProcessingMode Optional filter for observe/resolve delivery
  * @param env Optional environment hint forwarded to resolve (sandbox/live)
  */
 data class SdkOptions(
-    val apiBaseUrl: String = DEFAULT_API_BASE_URL,
     val linkProcessingMode: LinkProcessingMode = LinkProcessingMode.ALL,
     val env: String? = null,
 )

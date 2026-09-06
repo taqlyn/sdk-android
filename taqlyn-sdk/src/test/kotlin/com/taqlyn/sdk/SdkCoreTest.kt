@@ -19,6 +19,9 @@ import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 @RunWith(RobolectricTestRunner::class)
 class SdkCoreTest {
@@ -144,13 +147,17 @@ class SdkCoreTest {
                 resolve = { ResolveOutcome.Matched(link) },
             )
 
-            val received = mutableListOf<DeferredLink>()
-            val closeable = SdkCore.addLinkListener { received += it }
+            val received = CopyOnWriteArrayList<DeferredLink>()
+            val latch = CountDownLatch(1)
+            val closeable =
+                SdkCore.addLinkListener {
+                    received += it
+                    if (it.linkId == "lnk_listener") latch.countDown()
+                }
             try {
                 SdkCore.resolveDeferred()
                 SdkCore.setReadyForNavigation(true)
-                testScheduler.runCurrent()
-                testScheduler.advanceUntilIdle()
+                assertThat(latch.await(2, TimeUnit.SECONDS)).isTrue()
                 assertThat(received.map { it.linkId }).contains("lnk_listener")
                 assertThat(received.first().matchType).isEqualTo(MatchType.INSTALL_REFERRER)
             } finally {
@@ -186,7 +193,7 @@ class SdkCoreTest {
         SdkCore.configure(
             clientId = "app_test_demo",
             publicKeyId = "pk_test_demo",
-            options = SdkOptions(apiBaseUrl = "https://api.example.test"),
+            options = SdkOptions(),
             context = null,
             installReferrer = installReferrer,
             resolveClient = resolveClient,

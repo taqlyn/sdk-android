@@ -24,7 +24,7 @@ SdkCore.setReadyForNavigation(ready)
 SdkCore.onIntent(intent)            // forward Activity App Links
 ```
 
-`SdkOptions.apiBaseUrl` defaults to `DEFAULT_API_BASE_URL` (`https://api.taqlyn.com`); pass it only to self-host. Optional `linkProcessingMode` (`ALL` | `WEB_ONLY` | `DEFERRED_ONLY`) and `env`.
+`SdkOptions` accepts optional `linkProcessingMode` (`ALL` | `WEB_ONLY` | `DEFERRED_ONLY`) and `env`. The control-plane origin is `https://api.taqlyn.com` (overridable only when compiling/publishing this library via `TAQLYN_API_BASE_URL`).
 
 `DeferredLink` mirrors `packages/sdk-contract`: `url`, `path`, `params`, `linkId`, `matchType`, `isDeferred`, `campaign`.
 
@@ -48,7 +48,7 @@ class App : Application() {
     SdkCore.configure(
       clientId = "app_test_…",
       publicKeyId = "pk_test_…",
-      options = SdkOptions(), // or apiBaseUrl = "https://api.self-host.example"
+      options = SdkOptions(),
       context = this,
     )
   }
@@ -73,7 +73,7 @@ SdkCore.observeLinks().onEach { link ->
 }.launchIn(scope)
 ```
 
-The sample wires Compose `NavHost` (Home + `product/{id}`) to `Nav2DeepLinkNavigator` via Gradle `includeBuild("../nav-compose")` + dependency substitution for `com.taqlyn.nav:navigation2`.
+The sample wires Compose `NavHost` (Home + `product/{id}`) to `Nav2DeepLinkNavigator`. Feature code imports `com.taqlyn.sdk.SdkCore` only (never Play Install Referrer). Navigation uses the optional `nav-compose` Nav2 adapter.
 
 ## Unit tests
 
@@ -82,12 +82,11 @@ From this directory:
 ```bash
 ./gradlew :taqlyn-sdk:test
 ./gradlew :sample:assembleDebug \
-  -PTAQLYN_API_BASE_URL=https://api.rutvik.qzz.io \
   -PTAQLYN_CLIENT_ID="$TAQLYN_CLIENT_ID" \
   -PTAQLYN_PUBLIC_KEY_ID="$TAQLYN_PUBLIC_KEY_ID"
 ```
 
-Public tunnel demos: seed with `./scripts/demo-seed.sh`, then pass `-P` props as above (defaults already target `https://api.rutvik.qzz.io`). See [docs/guides/public-demo.md](../../docs/guides/public-demo.md).
+Public tunnel demos: seed with `./scripts/demo-seed.sh`, then pass `-P` client/public-key props as above. The SDK talks to `https://api.taqlyn.com`. See [docs/guides/public-demo.md](../../docs/guides/public-demo.md).
 
 Coverage includes:
 

@@ -16,7 +16,6 @@ class SampleApplication : Application() {
             publicKeyId = BuildConfig.TAQLYN_PUBLIC_KEY_ID,
             options =
                 SdkOptions(
-                    apiBaseUrl = BuildConfig.TAQLYN_API_BASE_URL,
                     linkProcessingMode = LinkProcessingMode.ALL,
                     env = "sandbox",
                 ),

@@ -94,8 +94,6 @@ object SdkCore {
     ) {
         require(clientId.isNotBlank()) { "clientId required" }
         require(publicKeyId.isNotBlank()) { "publicKeyId required" }
-        val apiBaseUrl =
-            options.apiBaseUrl.ifBlank { DEFAULT_API_BASE_URL }.trim().trimEnd('/')
 
         val appContext = context?.applicationContext
         val referrer =
@@ -116,7 +114,7 @@ object SdkCore {
             Config(
                 clientId = clientId,
                 publicKeyId = publicKeyId,
-                options = options.copy(apiBaseUrl = apiBaseUrl),
+                options = options,
                 installReferrer = referrer,
                 resolveClient = resolveClient ?: HttpResolveClient(),
                 shareClient = shareClient ?: HttpShareClient(),
@@ -161,7 +159,7 @@ object SdkCore {
                     runCatching {
                         config.resolveClient.resolve(
                             ResolveRequest(
-                                apiBaseUrl = config.options.apiBaseUrl,
+                                apiBaseUrl = TaqlynApi.origin,
                                 clientId = config.clientId,
                                 publicKeyId = config.publicKeyId,
                                 referrer = referrer,
@@ -251,7 +249,7 @@ object SdkCore {
         val config = configured ?: throw ShareLinkException("configure before createShareLink")
         return config.shareClient.create(
             ShareLinkRequest(
-                apiBaseUrl = config.options.apiBaseUrl,
+                apiBaseUrl = TaqlynApi.origin,
                 clientId = config.clientId,
                 publicKeyId = config.publicKeyId,
                 destinationPath = destinationPath,

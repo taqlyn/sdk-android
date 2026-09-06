@@ -14,6 +14,16 @@ android {
     defaultConfig {
         minSdk = 24
         consumerProguardFiles("consumer-rules.pro")
+        val apiBase =
+            (System.getenv("TAQLYN_API_BASE_URL") ?: "https://api.taqlyn.com")
+                .trim()
+                .trimEnd('/')
+                .ifBlank { "https://api.taqlyn.com" }
+        buildConfigField("String", "API_BASE_URL", "\"$apiBase\"")
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     compileOptions {
@@ -43,8 +53,8 @@ dependencies {
     testImplementation("org.robolectric:robolectric:4.14.1")
 }
 
-// Enables RN / Flutter consumers via includeBuild + dependencySubstitution
-// or `./gradlew :taqlyn-sdk:publishToMavenLocal`.
+// Published coordinate `com.taqlyn:taqlyn-sdk`. Customer apps and plugins
+// consume Maven Central, not includeBuild of this project.
 publishing {
     publications {
         create<MavenPublication>("release") {
