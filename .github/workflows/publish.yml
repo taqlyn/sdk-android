@@ -1,7 +1,7 @@
 name: Publish Android SDK (Maven Central)
 
+# Phase 1 native core. Publish this before RN, Flutter, and Compose nav adapters.
 # Deploys signed AARs to Maven Central via Sonatype Central Portal API.
-# Cryptographically signed with GPG key pair.
 
 on:
   release:
@@ -40,15 +40,22 @@ jobs:
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
         run: |
-          if [ -n "$GPG_PRIVATE_KEY" ]; then
-            echo "$GPG_PRIVATE_KEY" | base64 -d > $(pwd)/signing.gpg
+          if [ -z "$GPG_PRIVATE_KEY" ]; then
+            echo "::error::GPG_PRIVATE_KEY is required for Maven Central."
+            exit 1
           fi
+          echo "$GPG_PRIVATE_KEY" | base64 -d > "${GITHUB_WORKSPACE}/signing.gpg"
 
       - name: Publish to Maven Central
+        env:
+          SIGNING_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+          SIGNING_PASSWORD: ${{ secrets.GPG_PASSPHRASE }}
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_TOKEN_USERNAME }}
+          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_TOKEN_PASSWORD }}
         run: |
           ./gradlew :taqlyn-sdk:publishAndReleaseToMavenCentral \
-            -Psigning.keyId="${{ secrets.GPG_KEY_ID }}" \
-            -Psigning.password="${{ secrets.GPG_PASSPHRASE }}" \
-            -Psigning.secretKeyRingFile="$(pwd)/signing.gpg" \
-            -PsonatypeUsername="${{ secrets.SONATYPE_TOKEN_USERNAME }}" \
-            -PsonatypePassword="${{ secrets.SONATYPE_TOKEN_PASSWORD }}"
+            -Psigning.keyId="$SIGNING_KEY_ID" \
+            -Psigning.password="$SIGNING_PASSWORD" \
+            -Psigning.secretKeyRingFile="${GITHUB_WORKSPACE}/signing.gpg" \
+            -PsonatypeUsername="$SONATYPE_USERNAME" \
+            -PsonatypePassword="$SONATYPE_PASSWORD"
