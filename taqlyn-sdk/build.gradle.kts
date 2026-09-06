@@ -1,7 +1,9 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
-    id("maven-publish")
+    id("com.vanniktech.maven.publish")
 }
 
 group = "com.taqlyn"
@@ -31,13 +33,15 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     testOptions {
         unitTests.isIncludeAndroidResources = true
         unitTests.isReturnDefaultValues = true
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 
@@ -53,17 +57,4 @@ dependencies {
     testImplementation("org.robolectric:robolectric:4.14.1")
 }
 
-// Published coordinate `com.taqlyn:taqlyn-sdk`. Customer apps and plugins
-// consume Maven Central, not includeBuild of this project.
-publishing {
-    publications {
-        create<MavenPublication>("release") {
-            groupId = "com.taqlyn"
-            artifactId = "taqlyn-sdk"
-            version = project.version.toString()
-            afterEvaluate {
-                from(components["release"])
-            }
-        }
-    }
-}
+// Published coordinate `com.taqlyn:taqlyn-sdk` via Vanniktech Maven Publish.
