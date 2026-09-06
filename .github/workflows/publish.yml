@@ -51,6 +51,11 @@ jobs:
             exit 1
           fi
           GPG_PASSPHRASE="$(printf '%s' "$GPG_PASSPHRASE" | tr -d '\r')"
+          echo "::notice::GPG_PASSPHRASE length=${#GPG_PASSPHRASE} GPG_KEY_ID length=${#GPG_KEY_ID} GPG_PRIVATE_KEY length=${#GPG_PRIVATE_KEY}"
+          if [ "${#GPG_PASSPHRASE}" -gt 512 ]; then
+            echo "::error::GPG_PASSPHRASE is ${#GPG_PASSPHRASE} characters, which exceeds gpg-agent's IPC limit. The production environment secret GPG_PASSPHRASE is probably the private key; set it to the key passphrase only."
+            exit 1
+          fi
           key_file="${RUNNER_TEMP}/signing-key.asc"
           if printf '%s' "$GPG_PRIVATE_KEY" | grep -q "BEGIN PGP"; then
             printf '%s\n' "$GPG_PRIVATE_KEY" > "$key_file"
@@ -66,9 +71,9 @@ jobs:
           chmod 700 "$GNUPGHOME"
           printf 'pinentry-mode loopback\n' > "$GNUPGHOME/gpg.conf"
           printf 'allow-loopback-pinentry\nallow-preset-passphrase\ndefault-cache-ttl 34560000\nmax-cache-ttl 34560000\n' > "$GNUPGHOME/gpg-agent.conf"
-          gpg --batch --import --no-tty --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" "$key_file"
-          gpgconf --kill gpg-agent
-          gpgconf --launch gpg-agent
+          gpg --batch --import --no-tty "$key_file"
+          gpgconf --kill gpg-agent || true
+          gpg-agent --homedir "$GNUPGHOME" --daemon --allow-preset-passphrase --default-cache-ttl 34560000 --max-cache-ttl 34560000
           preset=/usr/lib/gnupg/gpg-preset-passphrase
           gpg --batch --list-secret-keys --with-colons --with-keygrip | awk -F: '/^grp:/ {print $10}' | while read -r grip; do
             printf '%s' "$GPG_PASSPHRASE" | "$preset" --preset "$grip"
