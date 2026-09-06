@@ -1,0 +1,9 @@
+import org.gradle.plugins.signing.SigningExtension
+
+allprojects { project ->
+    project.pluginManager.withPlugin("signing") {
+        project.extensions.configure(SigningExtension) { signing ->
+            signing.useGpgCmd()
+        }
+    }
+}
