@@ -35,7 +35,7 @@ jobs:
           cache: gradle
 
       - name: Run unit tests
-        run: ./gradlew testReleaseUnitTest
+        run: ./gradlew :taqlyn-sdk:testReleaseUnitTest
 
       - name: Publish to Maven Central
         env:
