@@ -14,7 +14,7 @@ fun interface TaqlynLinkListener {
 fun isAndroidPlatformLink(link: DeferredLink): Boolean {
     if (!link.isDeferred) return true
     return when (link.matchType) {
-        MatchType.INSTALL_REFERRER, MatchType.CLAIM -> true
+        MatchType.INSTALL_REFERRER, MatchType.CLAIM, MatchType.FINGERPRINT -> true
         MatchType.CLIPBOARD, MatchType.APP_CLIP, MatchType.NONE -> false
     }
 }
