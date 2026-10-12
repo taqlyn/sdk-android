@@ -17,14 +17,18 @@ Kotlin SdkCore + thin adapters for Play Install Referrer, App Links, resolve HTT
 SdkCore.configure(clientId, publicKeyId, options, context)
 SdkCore.createShareLink(destinationPath = "/offer")  // ShareLink — in-app sharing
 SdkCore.resolveDeferred()           // DeferredLink?
+SdkCore.resolveShortLink(url)       // ExpandResult? — POST /v1/links/expand
+SdkCore.resolveIncomingUrl(url)     // ResolvedNavTarget? — await | optimistic
 SdkCore.addLinkListener { … }       // Android-only TaqlynLinkListener (AL + referrer)
 SdkCore.observeLinks()              // Flow<DeferredLink>
-SdkCore.consume(linkId)
+SdkCore.consume(linkId)             // also fires trackOpen
+SdkCore.trackOpen(linkId)
+SdkCore.logEvent(name, data)
 SdkCore.setReadyForNavigation(ready)
 SdkCore.onIntent(intent)            // forward Activity App Links
 ```
 
-`SdkOptions` accepts optional `linkProcessingMode` (`ALL` | `WEB_ONLY` | `DEFERRED_ONLY`) and `env`. The control-plane origin is `https://api.taqlyn.com` (overridable only when compiling/publishing this library via `TAQLYN_API_BASE_URL`).
+`SdkOptions` accepts `linkProcessingMode` (`ALL` | `WEB_ONLY` | `DEFERRED_ONLY`), `env`, expand fields (`resolveMode`, `fallbackPath`, `hosts`, `timeoutMs`), and opt-in `enableProbabilisticMatch` (default `false`). The control-plane origin is `https://api.taqlyn.com` (overridable only when compiling/publishing this library via `TAQLYN_API_BASE_URL`).
 
 `DeferredLink` mirrors `packages/sdk-contract`: `url`, `path`, `params`, `linkId`, `matchType`, `isDeferred`, `campaign`.
 
@@ -35,6 +39,8 @@ SdkCore.onIntent(intent)            // forward Activity App Links
 | `adapters/InstallReferrer.kt` | `InstallReferrer.readOnce()` | `com.android.installreferrer` |
 | `adapters/IncomingLink.kt` | `IncomingLink.observe()` | Intent / App Links |
 | `adapters/ResolveClient.kt` | `ResolveClient.resolve()` | HTTP `POST /v1/resolve` |
+| `adapters/ExpandClient.kt` | `ExpandClient.expand()` | HTTP `POST /v1/links/expand` |
+| `adapters/EventsClient.kt` | `trackOpen` / `logEvent` | HTTP `/v1/events/*` |
 | `adapters/KeyValueStore.kt` | `KeyValueStore` | SharedPreferences |
 
 Sample / app feature modules import `com.taqlyn.sdk.SdkCore` only (never Play Install Referrer). Navigation uses the optional `nav-compose` Nav2 adapter.
