@@ -25,8 +25,10 @@ data class ResolveRequest(
     val apiBaseUrl: String,
     val clientId: String,
     val publicKeyId: String,
-    val referrer: String,
+    val referrer: String = "",
     val env: String? = null,
+    /** Opt-in probabilistic IP-hash match when referrer is empty. */
+    val fingerprint: Boolean = false,
 )
 
 sealed class ResolveOutcome {
@@ -51,8 +53,9 @@ class HttpResolveClient : ResolveClient {
                 JSONObject()
                     .put("clientId", request.clientId)
                     .put("publicKeyId", request.publicKeyId)
-                    .put("referrer", request.referrer)
                     .apply {
+                        if (request.referrer.isNotBlank()) put("referrer", request.referrer)
+                        if (request.fingerprint) put("fingerprint", true)
                         if (request.env != null) put("env", request.env)
                     }.toString()
 
