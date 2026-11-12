@@ -1,11 +1,12 @@
 package com.taqlyn.sdk
 
 import com.google.common.truth.Truth.assertThat
-import com.sun.net.httpserver.HttpServer
 import com.taqlyn.sdk.adapters.HttpResolveClient
 import com.taqlyn.sdk.adapters.ResolveOutcome
 import com.taqlyn.sdk.adapters.ResolveRequest
-import java.net.InetSocketAddress
+import java.net.InetAddress
+import java.net.ServerSocket
+import kotlin.concurrent.thread
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -35,24 +36,37 @@ class HttpResolveClientTest {
         }
 
     private suspend fun resolveWith(body: String): ResolveOutcome {
-        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
-        server.createContext("/v1/resolve") { exchange ->
-            val bytes = body.toByteArray()
-            exchange.sendResponseHeaders(200, bytes.size.toLong())
-            exchange.responseBody.use { it.write(bytes) }
-        }
-        server.start()
+        val server = ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"))
+        val serving =
+            thread {
+                server.accept().use { socket ->
+                    // Drain the request headers and body before replying.
+                    val input = socket.getInputStream()
+                    val buf = ByteArray(8192)
+                    input.read(buf)
+                    val bytes = body.toByteArray()
+                    socket.getOutputStream().apply {
+                        write(
+                            ("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n" +
+                                "Content-Length: ${bytes.size}\r\nConnection: close\r\n\r\n").toByteArray(),
+                        )
+                        write(bytes)
+                        flush()
+                    }
+                }
+            }
         try {
             return HttpResolveClient().resolve(
                 ResolveRequest(
-                    apiBaseUrl = "http://127.0.0.1:${server.address.port}",
+                    apiBaseUrl = "http://127.0.0.1:${server.localPort}",
                     clientId = "app_test_demo",
                     publicKeyId = "pk_test_demo",
                     referrer = "click_id=clk_1",
                 ),
             )
         } finally {
-            server.stop(0)
+            serving.join(2_000)
+            server.close()
         }
     }
 }

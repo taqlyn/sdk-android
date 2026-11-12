@@ -15,7 +15,7 @@ android {
         minSdk = 24
         targetSdk = 35
         versionCode = 1
-        versionName = "0.2.2"
+        versionName = "0.2.3"
 
         // Override via Gradle props, e.g.:
         //   ./gradlew :sample:assembleDebug \
