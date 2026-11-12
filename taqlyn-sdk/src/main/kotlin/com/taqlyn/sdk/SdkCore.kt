@@ -27,6 +27,7 @@ import com.taqlyn.sdk.adapters.ShareLinkRequest
 import com.taqlyn.sdk.adapters.SharedPrefsKeyValueStore
 import com.taqlyn.sdk.adapters.parseClickId
 import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -164,8 +165,15 @@ object SdkCore {
                     return@withLock null
                 }
 
+                // A failed read is not "organic": leave the flag unset so the next launch retries.
                 val referrer =
-                    runCatching { config.installReferrer.readOnce() }.getOrNull()
+                    try {
+                        config.installReferrer.readOnce()
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (_: Exception) {
+                        return@withLock null
+                    }
                 val organic = referrer.isNullOrBlank() || isOrganic(referrer)
                 if (organic && !config.options.enableProbabilisticMatch) {
                     config.store.putBoolean(SdkStoreKeys.DEFERRED_RESOLVED, true)

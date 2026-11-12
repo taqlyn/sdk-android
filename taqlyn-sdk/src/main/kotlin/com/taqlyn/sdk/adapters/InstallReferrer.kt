@@ -4,7 +4,9 @@ import android.content.Context
 import com.android.installreferrer.api.InstallReferrerClient
 import com.android.installreferrer.api.InstallReferrerStateListener
 import com.android.installreferrer.api.ReferrerDetails
+import java.io.IOException
 import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.suspendCancellableCoroutine
 
 /**
@@ -13,7 +15,11 @@ import kotlinx.coroutines.suspendCancellableCoroutine
  */
 fun interface InstallReferrer {
     /**
-     * Read install referrer once and disconnect. Soft-fails to null on error.
+     * Read install referrer once and disconnect.
+     *
+     * Returns null when Play has no referrer (organic install, or Play Store
+     * unsupported). Throws on a transient failure (service unavailable /
+     * disconnected) so the caller can retry on the next launch.
      */
     suspend fun readOnce(): String?
 }
@@ -36,29 +42,38 @@ class PlayInstallReferrer(
                     object : InstallReferrerStateListener {
                         override fun onInstallReferrerSetupFinished(responseCode: Int) {
                             try {
-                                if (responseCode != InstallReferrerClient.InstallReferrerResponse.OK) {
-                                    if (cont.isActive) cont.resume(null)
-                                    return
+                                when (responseCode) {
+                                    InstallReferrerClient.InstallReferrerResponse.OK -> {
+                                        val details: ReferrerDetails = client.installReferrer
+                                        val referrer = details.installReferrer?.takeIf { it.isNotBlank() }
+                                        if (cont.isActive) cont.resume(referrer)
+                                    }
+                                    InstallReferrerClient.InstallReferrerResponse.FEATURE_NOT_SUPPORTED ->
+                                        if (cont.isActive) cont.resume(null)
+                                    else ->
+                                        if (cont.isActive) {
+                                            cont.resumeWithException(
+                                                IOException("Install Referrer unavailable (code $responseCode)"),
+                                            )
+                                        }
                                 }
-                                val details: ReferrerDetails = client.installReferrer
-                                val referrer = details.installReferrer?.takeIf { it.isNotBlank() }
-                                if (cont.isActive) cont.resume(referrer)
-                            } catch (_: Exception) {
-                                if (cont.isActive) cont.resume(null)
+                            } catch (e: Exception) {
+                                if (cont.isActive) cont.resumeWithException(e)
                             } finally {
                                 runCatching { client.endConnection() }
                             }
                         }
 
                         override fun onInstallReferrerServiceDisconnected() {
-                            // Soft-fail — caller may retry on next launch if flag unset.
-                            if (cont.isActive) cont.resume(null)
+                            if (cont.isActive) {
+                                cont.resumeWithException(IOException("Install Referrer service disconnected"))
+                            }
                         }
                     },
                 )
-            } catch (_: Exception) {
+            } catch (e: Exception) {
                 runCatching { client.endConnection() }
-                if (cont.isActive) cont.resume(null)
+                if (cont.isActive) cont.resumeWithException(e)
             }
         }
 }

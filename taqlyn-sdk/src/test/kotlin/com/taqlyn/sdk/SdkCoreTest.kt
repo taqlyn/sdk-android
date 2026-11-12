@@ -69,6 +69,32 @@ class SdkCoreTest {
         }
 
     @Test
+    fun referrerReadFailure_doesNotSetFlag_andRetriesNextLaunch() =
+        runTest {
+            var failing = true
+            SdkCore.configure(
+                clientId = "app_test_demo",
+                publicKeyId = "pk_test_demo",
+                options = SdkOptions(),
+                context = null,
+                installReferrer =
+                    InstallReferrer {
+                        if (failing) throw java.io.IOException("service unavailable")
+                        "click_id=clk_1"
+                    },
+                resolveClient = ResolveClient { ResolveOutcome.Matched(sampleLink("lnk_retry")) },
+                store = store,
+                incomingLink = incoming,
+            )
+
+            assertThat(SdkCore.resolveDeferred()).isNull()
+            assertThat(store.getBoolean(SdkStoreKeys.DEFERRED_RESOLVED)).isFalse()
+
+            failing = false
+            assertThat(SdkCore.resolveDeferred()?.linkId).isEqualTo("lnk_retry")
+        }
+
+    @Test
     fun readyGate_holdsPendingUntilSetReadyForNavigation() =
         runTest {
             val link = sampleLink("lnk_ready")
