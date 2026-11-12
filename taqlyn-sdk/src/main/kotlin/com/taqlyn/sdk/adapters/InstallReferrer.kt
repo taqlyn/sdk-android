@@ -1,6 +1,7 @@
 package com.taqlyn.sdk.adapters
 
 import android.content.Context
+import android.util.Log
 import com.android.installreferrer.api.InstallReferrerClient
 import com.android.installreferrer.api.InstallReferrerStateListener
 import com.android.installreferrer.api.ReferrerDetails
@@ -23,6 +24,8 @@ fun interface InstallReferrer {
      */
     suspend fun readOnce(): String?
 }
+
+private const val TAG = "Taqlyn"
 
 /**
  * Production Play Install Referrer adapter.
@@ -50,12 +53,14 @@ class PlayInstallReferrer(
                                     }
                                     InstallReferrerClient.InstallReferrerResponse.FEATURE_NOT_SUPPORTED ->
                                         if (cont.isActive) cont.resume(null)
-                                    else ->
+                                    else -> {
+                                        Log.w(TAG, "Install Referrer unavailable (code $responseCode)")
                                         if (cont.isActive) {
                                             cont.resumeWithException(
                                                 IOException("Install Referrer unavailable (code $responseCode)"),
                                             )
                                         }
+                                    }
                                 }
                             } catch (e: Exception) {
                                 if (cont.isActive) cont.resumeWithException(e)

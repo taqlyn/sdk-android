@@ -76,7 +76,10 @@ class HttpResolveClient : ResolveClient {
                         val text =
                             conn.inputStream.bufferedReader().use(BufferedReader::readText)
                         if (text.isBlank()) return ResolveOutcome.NoMatch
-                        val link = parseDeferredLink(JSONObject(text))
+                        val root = JSONObject(text)
+                        // API replies { "deferredLink": {...} | null }.
+                        val payload = if (root.has("deferredLink")) root.optJSONObject("deferredLink") else root
+                        val link = payload?.let(::parseDeferredLink)
                         if (link == null) ResolveOutcome.NoMatch else ResolveOutcome.Matched(link)
                     }
                     404, 204, 410 -> ResolveOutcome.NoMatch
