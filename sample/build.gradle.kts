@@ -14,8 +14,8 @@ android {
         applicationId = "com.taqlyn.sample"
         minSdk = 24
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.2.3"
+        versionCode = 2
+        versionName = "0.2.4"
 
         // Override via Gradle props, e.g.:
         //   ./gradlew :sample:assembleDebug \
